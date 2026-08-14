@@ -9,45 +9,31 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with: { distribution: 'temurin', java-version: '17' }
-      - uses: gradle/actions/setup-gradle@v3
 
-      - name: Build
+      - name: Build and Package
         run: |
           mkdir -p app/src/main/java/com/infinityglass/admin
           
-          # 1. settings.gradle (pluginManagement ve Repositories burada olacak)
+          # Gradle Wrapper'ı daha stabil bir sürüme çekiyoruz (8.2)
+          gradle wrapper --gradle-version 8.2
+          
+          # Root build.gradle
+          cat <<EOF > build.gradle
+          plugins {
+              id 'com.android.application' version '8.1.0' apply false
+          }
+          EOF
+
+          # Settings.gradle
           cat <<EOF > settings.gradle
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
           rootProject.name='InfinityAdmin'
           include ':app'
           EOF
 
-          # 2. build.gradle (Sadece plugin tanımları, management blokları yok)
-          cat <<EOF > build.gradle
-          plugins {
-              id 'com.android.application' version '8.0.0' apply false
-          }
-          EOF
-
-          # 3. app/build.gradle
+          # App build.gradle (Eski methodu kullanıyoruz, daha uyumlu)
           mkdir -p app
           cat <<EOF > app/build.gradle
-          plugins {
-              id 'com.android.application'
-          }
+          apply plugin: 'com.android.application'
           android {
               namespace 'com.infinityglass.admin'
               compileSdk 33
@@ -55,12 +41,11 @@ jobs:
                   applicationId "com.infinityglass.admin"
                   minSdkVersion 21
                   targetSdkVersion 33
-                  versionCode 1
               }
           }
           EOF
-          
-          # 4. Manifest
+
+          # Manifest
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.infinityglass.admin">
               <uses-permission android:name="android.permission.INTERNET"/>
@@ -74,8 +59,8 @@ jobs:
               </application>
           </manifest>
           EOF
-          
-          # 5. MainActivity
+
+          # MainActivity
           cat <<EOF > app/src/main/java/com/infinityglass/admin/MainActivity.java
           package com.infinityglass.admin;
           import android.app.Activity;
@@ -94,7 +79,7 @@ jobs:
           }
           EOF
           
-          gradle wrapper
+          chmod +x gradlew
           ./gradlew assembleDebug
 
       - uses: actions/upload-artifact@v4
