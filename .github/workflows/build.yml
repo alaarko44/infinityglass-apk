@@ -15,25 +15,59 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Gradle 7.6
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '7.6'
-
-      - name: Create Project
+      - name: Create Project Structure
         run: |
           mkdir -p app/src/main/java/com/infinityglass/admin/
-          
-          # MainActivity - Hataları Yoksayan ve Sitenizi Doğrudan Açan Kod
+          mkdir -p app/src/main/res/values/
+
+          # 1. build.gradle (Proje Seviyesi)
+          cat <<EOF > build.gradle
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:7.4.2' }
+          }
+          allprojects { repositories { google(); mavenCentral() } }
+          EOF
+
+          # 2. settings.gradle
+          echo "include ':app'" > settings.gradle
+
+          # 3. app/build.gradle (Uygulama Seviyesi)
+          cat <<EOF > app/build.gradle
+          apply plugin: 'com.android.application'
+          android {
+              compileSdkVersion 33
+              defaultConfig {
+                  applicationId "com.infinityglass.admin"
+                  minSdkVersion 21
+                  targetSdkVersion 33
+              }
+          }
+          EOF
+
+          # 4. AndroidManifest.xml
+          cat <<EOF > app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.infinityglass.admin">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application android:label="Infinity Admin" android:usesCleartextTraffic="true">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          # 5. MainActivity.java
           cat <<EOF > app/src/main/java/com/infinityglass/admin/MainActivity.java
           package com.infinityglass.admin;
           import android.app.Activity;
           import android.os.Bundle;
-          import android.webkit.WebSettings;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
-          import android.net.http.SslError;
-          import android.webkit.SslErrorHandler;
+          import android.webkit.WebSettings;
 
           public class MainActivity extends Activity {
               @Override
@@ -43,47 +77,18 @@ jobs:
                   WebSettings settings = webView.getSettings();
                   settings.setJavaScriptEnabled(true);
                   settings.setDomStorageEnabled(true);
-                  settings.setAllowFileAccess(true);
-                  
-                  webView.setWebViewClient(new WebViewClient() {
-                      @Override
-                      public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
-                          handler.proceed(); // SSL hatalarını yoksayarak siteyi aç
-                      }
-                  });
-                  
+                  webView.setWebViewClient(new WebViewClient());
                   webView.loadUrl("https://infinityglass.gt.tc/admin");
                   setContentView(webView);
               }
           }
           EOF
 
-          # Manifest - İnternet izinleri ve CleartextTraffic (Http/Https engeli yok)
-          cat <<EOF > app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.infinityglass.admin">
-              <uses-permission android:name="android.permission.INTERNET" />
-              <application android:allowBackup="true" android:label="Infinity Admin" android:theme="@android:style/Theme.NoTitleBar.Fullscreen" android:usesCleartextTraffic="true">
-                  <activity android:name=".MainActivity" android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHABLE" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-
-          # Build dosyaları
-          echo "include ':app'" > settings.gradle
-          echo "rootProject.name='InfinityAdmin'" >> settings.gradle
-          echo "android.useAndroidX=true" > gradle.properties
-          echo "apply plugin: 'com.android.application'
-          android { compileSdkVersion 33; defaultConfig { applicationId 'com.infinityglass.admin'; minSdkVersion 21; targetSdkVersion 33 } }" > app/build.gradle
-          gradle wrapper --gradle-version 7.6
-
-      - name: Build
+      - name: Build APK
         run: ./gradlew assembleDebug
 
-      - name: Upload
+      - name: Upload APK
         uses: actions/upload-artifact@v4
-        with: { name: app-debug, path: app/build/outputs/apk/debug/app-debug.apk }
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
