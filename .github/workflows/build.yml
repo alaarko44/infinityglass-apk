@@ -14,7 +14,7 @@ jobs:
 
       - name: Build APK Automatically
         run: |
-          # 1. Proje yapısını sıfırdan kusursuz kuruyoruz
+          # 1. Proje dosyalarını sıfırdan oluşturuyoruz
           mkdir -p app/src/main/java/com/infinityglass/admin
           
           cat <<EOF > settings.gradle
@@ -86,10 +86,10 @@ jobs:
           }
           EOF
 
-          # 2. Gradle Wrapper'ı kurup derliyoruz
-          gradle wrapper --gradle-version 7.5
-          chmod +x gradlew
-          ./gradlew assembleDebug
+          # 2. GitHub'ın kendi Gradle'ını bypass edip 7.5 sürümünü manuel kuruyoruz
+          wget https://services.gradle.org/distributions/gradle-7.5-bin.zip
+          unzip -q gradle-7.5-bin.zip
+          ./gradle-7.5/bin/gradle assembleDebug
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
