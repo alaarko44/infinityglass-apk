@@ -15,30 +15,36 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Create Minimal Android Project Structure
+      - name: Create Project Files
         run: |
           mkdir -p app/src/main/res/values
           echo '<resources><string name="app_name">Infinity Admin</string></resources>' > app/src/main/res/values/strings.xml
-          
           echo "include ':app'" > settings.gradle
           echo "rootProject.name='InfinityAdmin'" >> settings.gradle
           
-          echo "apply plugin: 'com.android.application'" > app/build.gradle
-          echo "android {" >> app/build.gradle
-          echo "    compileSdk 33" >> app/build.gradle
-          echo "    defaultConfig {" >> app/build.gradle
-          echo "        applicationId 'com.infinityglass.admin'" >> app/build.gradle
-          echo "        minSdk 21" >> app/build.gradle
-          echo "        targetSdk 33" >> app/build.gradle
-          echo "        versionCode 1" >> app/build.gradle
-          echo "        versionName '1.0'" >> app/build.gradle
-          echo "    }" >> app/build.gradle
-          echo "}" >> app/build.gradle
+          # build.gradle dosyasını yeniden ve düzgün formatta oluşturuyoruz
+          cat <<EOF > build.gradle
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:7.4.2' }
+          }
+          allprojects { repositories { google(); mavenCentral() } }
+          EOF
           
-          echo "buildscript { repositories { google(); mavenCentral() } dependencies { classpath 'com.android.tools.build:gradle:7.4.2' } }" > build.gradle
-          echo "allprojects { repositories { google(); mavenCentral() } }" >> build.gradle
-          echo "sdk.dir=$ANDROID_HOME" > local.properties
-          
+          cat <<EOF > app/build.gradle
+          apply plugin: 'com.android.application'
+          android {
+              compileSdk 33
+              defaultConfig {
+                  applicationId 'com.infinityglass.admin'
+                  minSdk 21
+                  targetSdk 33
+                  versionCode 1
+                  versionName '1.0'
+              }
+          }
+          EOF
+          echo "sdk.dir=\$ANDROID_HOME" > local.properties
           gradle wrapper
 
       - name: Build Debug APK
