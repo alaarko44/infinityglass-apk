@@ -12,7 +12,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build APK
+      - name: Build APK (Minimal)
         run: |
           mkdir -p app/src/main/java/com/infinityglass/admin
           mkdir -p app/src/main/res/values
@@ -43,9 +43,6 @@ jobs:
                   targetSdkVersion 33
               }
           }
-          dependencies {
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-          }
           EOF
 
           cat <<EOF > app/src/main/AndroidManifest.xml
@@ -55,8 +52,7 @@ jobs:
                   android:label="Infinity Admin" 
                   android:usesCleartextTraffic="true"
                   android:icon="@drawable/logo"
-                  android:roundIcon="@drawable/logo"
-                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                  android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -67,25 +63,16 @@ jobs:
           </manifest>
           EOF
 
-          cat <<EOF > app/src/main/res/values/styles.xml
-          <resources>
-              <style name="Theme.AppCompat.Light.NoActionBar" parent="Theme.AppCompat.Light.NoActionBar">
-                  <item name="android:windowNoTitle">true</item>
-                  <item name="android:windowFullscreen">false</item>
-              </style>
-          </resources>
-          EOF
-
           cat <<EOF > app/src/main/java/com/infinityglass/admin/MainActivity.java
           package com.infinityglass.admin;
-          import androidx.appcompat.app.AppCompatActivity;
+          import android.app.Activity;
           import android.os.Bundle;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
           import android.webkit.WebSettings;
           import android.webkit.CookieManager;
 
-          public class MainActivity extends AppCompatActivity {
+          public class MainActivity extends Activity {
               @Override
               protected void onCreate(Bundle b) {
                   super.onCreate(b);
@@ -109,7 +96,7 @@ jobs:
           unzip -q gradle-7.5-bin.zip
           ./gradle-7.5/bin/gradle assembleDebug
 
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
