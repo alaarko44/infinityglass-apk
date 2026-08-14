@@ -22,20 +22,28 @@ jobs:
 
       - name: Create Complete Project Structure
         run: |
-          # Klasörleri eksiksiz oluşturuyoruz
+          # Gerekli klasörleri oluşturuyoruz
           mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/drawable
           
-          # AndroidManifest.xml dosyasını tam yerine yazıyoruz
+          # Temalar için styles.xml dosyasını ekliyoruz
+          cat <<EOF > app/src/main/res/values/styles.xml
+          <resources>
+              <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar" />
+          </resources>
+          EOF
+
+          # Strings dosyası
+          echo '<resources><string name="app_name">Infinity Admin</string></resources>' > app/src/main/res/values/strings.xml
+
+          # AndroidManifest.xml dosyasını doğru tema referansıyla yazıyoruz
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android"
               package="com.infinityglass.admin">
               <application
                   android:allowBackup="true"
-                  android:icon="@mipmap/ic_launcher"
                   android:label="Infinity Admin"
-                  android:roundIcon="@mipmap/ic_launcher_round"
-                  android:supportsRtl="true"
-                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                  android:theme="@style/AppTheme">
                   <activity
                       android:name=".MainActivity"
                       android:exported="true">
@@ -48,8 +56,7 @@ jobs:
           </manifest>
           EOF
 
-          # Strings ve gradle ayarları
-          echo '<resources><string name="app_name">Infinity Admin</string></resources>' > app/src/main/res/values/strings.xml
+          # Gradle ve proje ayarları
           echo "include ':app'" > settings.gradle
           echo "rootProject.name='InfinityAdmin'" >> settings.gradle
           
