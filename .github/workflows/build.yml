@@ -10,34 +10,24 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: 'temurin', java-version: '17' }
 
-      - name: Generate Project
+      - name: Build With Pre-installed Gradle
         run: |
+          # 1. Proje yapısını oluştur
           mkdir -p app/src/main/java/com/infinityglass/admin
           
-          # Gradle Wrapper'ı temiz bir şekilde kur
-          gradle wrapper --gradle-version 8.0
-          chmod +x gradlew
+          # 2. Settings dosyası (Gradle'ı başlatmak için şart)
+          echo "rootProject.name='InfinityAdmin'" > settings.gradle
+          echo "include ':app'" >> settings.gradle
           
-          # Root build.gradle
-          echo "plugins { id 'com.android.application' version '8.0.0' apply false }" > build.gradle
-          echo "include ':app'" > settings.gradle
+          # 3. Root build dosyası
+          echo "buildscript { repositories { google(); mavenCentral() } dependencies { classpath 'com.android.tools.build:gradle:7.4.2' } }" > build.gradle
+          echo "allprojects { repositories { google(); mavenCentral() } }" >> build.gradle
           
-          # App build.gradle
-          cat <<EOF > app/build.gradle
-          plugins { id 'com.android.application' }
-          android {
-              namespace 'com.infinityglass.admin'
-              compileSdk 33
-              defaultConfig {
-                  applicationId "com.infinityglass.admin"
-                  minSdkVersion 21
-                  targetSdkVersion 33
-                  versionCode 1
-              }
-          }
-          EOF
-
-          # Manifest
+          # 4. App build dosyası
+          echo "apply plugin: 'com.android.application'" > app/build.gradle
+          echo "android { compileSdkVersion 33; defaultConfig { applicationId 'com.infinityglass.admin'; minSdkVersion 21; targetSdkVersion 33 } }" >> app/build.gradle
+          
+          # 5. Manifest
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.infinityglass.admin">
               <uses-permission android:name="android.permission.INTERNET"/>
@@ -51,8 +41,8 @@ jobs:
               </application>
           </manifest>
           EOF
-
-          # MainActivity
+          
+          # 6. MainActivity
           cat <<EOF > app/src/main/java/com/infinityglass/admin/MainActivity.java
           package com.infinityglass.admin;
           import android.app.Activity;
@@ -72,8 +62,8 @@ jobs:
           }
           EOF
 
-      - name: Build
-        run: ./gradlew assembleDebug
+          # 7. Derleme (Wrapper olmadan doğrudan gradle komutuyla)
+          /usr/share/gradle/bin/gradle assembleDebug
 
       - name: Upload
         uses: actions/upload-artifact@v4
