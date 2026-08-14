@@ -12,49 +12,18 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build APK with Final Tweaks (Icon & NoActionBar)
+      - name: Create Folders and Build
         run: |
-          # 1. Proje Klasörlerini Oluştur
+          # 1. Klasörleri otomatik oluştur
           mkdir -p app/src/main/java/com/infinityglass/admin
           mkdir -p app/src/main/res/drawable
           mkdir -p app/src/main/res/values
 
-          # 2. Icon Dosyasını İndir ve Kaydet (Logo)
-          wget https://raw.githubusercontent.com/alaarl/infinityglass-apk/main/app/src/main/res/drawable/icon.png -O app/src/main/res/drawable/logo.png
-          # Not: Eğer bu link çalışmazsa doğrudan url'yi kullanıyoruz, GitHub raw linki bazen sıkıntı yaratabilir.
-          # Alternatif olarak geçici bir çözüm uyguluyorum (derleme esnasında hata vermemesi için):
-          # Asıl çözüm icon'u repoya yükleyip linki doğru vermektir, ancak sunucuda wget ile çekmeyi deneyeceğiz.
+          # 2. Logonuzu indirin (Kendi logonuzun olduğu URL'yi buraya yazın)
+          # Eğer GitHub'da yüklü değilse, URL kısmına logonuzun olduğu bir linki yapıştırın.
+          wget -O app/src/main/res/drawable/logo.png https://raw.githubusercontent.com/alaarl/infinityglass-apk/main/logo.png
 
-          # 3. Gerekli Kod Dosyalarını Oluştur (Değişiklik Yok)
-          cat <<EOF > settings.gradle
-          rootProject.name = 'InfinityAdmin'
-          include ':app'
-          EOF
-
-          cat <<EOF > build.gradle
-          buildscript {
-              repositories { google() mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:7.4.2' }
-          }
-          allprojects { repositories { google() mavenCentral() } }
-          EOF
-
-          cat <<EOF > app/build.gradle
-          apply plugin: 'com.android.application'
-          android {
-              namespace 'com.infinityglass.admin'
-              compileSdkVersion 33
-              defaultConfig {
-                  applicationId "com.infinityglass.admin"
-                  minSdkVersion 21
-                  targetSdkVersion 33
-                  versionCode 1
-                  versionName "1.0"
-              }
-          }
-          EOF
-
-          # 4. Manifest ve Temalar (NoActionBar Uygulandı)
+          # 3. Diğer tüm dosyaları oluştur
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.infinityglass.admin">
               <uses-permission android:name="android.permission.INTERNET"/>
@@ -77,66 +46,65 @@ jobs:
           cat <<EOF > app/src/main/res/values/styles.xml
           <resources>
               <style name="Theme.NoActionBar" parent="Theme.MaterialComponents.Light.NoActionBar">
-                  <item name="colorPrimary">@color/black</item>
-                  <item name="colorPrimaryDark">@color/black</item>
-                  <item name="colorAccent">@color/black</item>
-                  <item name="android:windowFullscreen">false</item> <!-- Durum çubuğu kalsın ama actionBar gitsin -->
                   <item name="android:windowNoTitle">true</item>
+                  <item name="android:windowFullscreen">false</item>
               </style>
-              <color name="black">#000000</color>
           </resources>
           EOF
 
-          # 5. MainActivity.java (Cookie ve WebView Güncellemesi Devam Ediyor)
           cat <<EOF > app/src/main/java/com/infinityglass/admin/MainActivity.java
           package com.infinityglass.admin;
           import android.app.Activity;
           import android.os.Bundle;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
-          import android.webkit.WebSettings;
           import android.webkit.CookieManager;
-          import android.view.View;
           import android.view.Window;
-          import android.view.WindowManager;
 
           public class MainActivity extends Activity {
               @Override
               protected void onCreate(Bundle b) {
                   super.onCreate(b);
-                  
-                  // Tam ekran (NoActionBar) için gerekli ayarlar
                   requestWindowFeature(Window.FEATURE_NO_TITLE);
-                  getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, 
-                                      WindowManager.LayoutParams.FLAG_FULLSCREEN);
-
                   WebView w = new WebView(this);
-                  WebSettings s = w.getSettings();
-                  s.setJavaScriptEnabled(true);
-                  s.setDomStorageEnabled(true);
-                  s.setDatabaseEnabled(true);
-                  s.setJavaScriptCanOpenWindowsAutomatically(true);
-                  
-                  CookieManager cookieManager = CookieManager.getInstance();
-                  cookieManager.setAcceptCookie(true);
-                  cookieManager.setAcceptThirdPartyCookies(w, true);
-                  
+                  w.getSettings().setJavaScriptEnabled(true);
+                  w.getSettings().setDomStorageEnabled(true);
+                  CookieManager.getInstance().setAcceptThirdPartyCookies(w, true);
                   w.setWebViewClient(new WebViewClient());
-                  // Sayfa yüklendiğinde üstteki admin panel yazısının gizlenmesi için JS enjekte edebiliriz.
-                  // Fakat web sitesi sizin kontrolünüzde olduğu için buna gerek kalmayacak.
-                  
                   w.loadUrl("https://infinityglass.gt.tc/admin");
                   setContentView(w);
               }
           }
           EOF
 
-          # 6. Derleme
+          # Gerekli gradle dosyalarını oluştur
+          cat <<EOF > build.gradle
+          allprojects { repositories { google(); mavenCentral() } }
+          EOF
+          
+          cat <<EOF > settings.gradle
+          include ':app'
+          EOF
+
+          cat <<EOF > app/build.gradle
+          apply plugin: 'com.android.application'
+          android {
+              namespace 'com.infinityglass.admin'
+              compileSdkVersion 33
+              defaultConfig {
+                  applicationId "com.infinityglass.admin"
+                  minSdkVersion 21
+                  targetSdkVersion 33
+              }
+          }
+          EOF
+
+          # Derleme
           wget https://services.gradle.org/distributions/gradle-7.5-bin.zip
           unzip -q gradle-7.5-bin.zip
           ./gradle-7.5/bin/gradle assembleDebug
 
-      - name: Upload Final APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
