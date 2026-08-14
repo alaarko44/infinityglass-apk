@@ -12,18 +12,44 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Create Folders and Build
+      - name: Build APK with Local Logo
         run: |
-          # 1. Klasörleri otomatik oluştur
+          # 1. Klasörleri oluşturuyoruz
           mkdir -p app/src/main/java/com/infinityglass/admin
-          mkdir -p app/src/main/res/drawable
           mkdir -p app/src/main/res/values
 
-          # 2. Logonuzu indirin (Kendi logonuzun olduğu URL'yi buraya yazın)
-          # Eğer GitHub'da yüklü değilse, URL kısmına logonuzun olduğu bir linki yapıştırın.
-          wget -O app/src/main/res/drawable/logo.png https://raw.githubusercontent.com/alaarl/infinityglass-apk/main/logo.png
+          # Not: logo.png zaten deponun ana dizininde (root) olduğu için,
+          # Android projesinin içine doğru klasöre kopyalıyoruz:
+          mkdir -p app/src/main/res/drawable
+          if [ -f logo.png ]; then cp logo.png app/src/main/res/drawable/logo.png; fi
 
-          # 3. Diğer tüm dosyaları oluştur
+          # 2. Ayar ve Kod Dosyalarını Oluşturuyoruz
+          cat <<EOF > settings.gradle
+          rootProject.name = 'InfinityAdmin'
+          include ':app'
+          EOF
+
+          cat <<EOF > build.gradle
+          buildscript {
+              repositories { google() mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:7.4.2' }
+          }
+          allprojects { repositories { google() mavenCentral() } }
+          EOF
+
+          cat <<EOF > app/build.gradle
+          apply plugin: 'com.android.application'
+          android {
+              namespace 'com.infinityglass.admin'
+              compileSdkVersion 33
+              defaultConfig {
+                  applicationId "com.infinityglass.admin"
+                  minSdkVersion 21
+                  targetSdkVersion 33
+              }
+          }
+          EOF
+
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.infinityglass.admin">
               <uses-permission android:name="android.permission.INTERNET"/>
@@ -58,6 +84,7 @@ jobs:
           import android.os.Bundle;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
+          import android.webkit.WebSettings;
           import android.webkit.CookieManager;
           import android.view.Window;
 
@@ -66,10 +93,18 @@ jobs:
               protected void onCreate(Bundle b) {
                   super.onCreate(b);
                   requestWindowFeature(Window.FEATURE_NO_TITLE);
+                  
                   WebView w = new WebView(this);
-                  w.getSettings().setJavaScriptEnabled(true);
-                  w.getSettings().setDomStorageEnabled(true);
-                  CookieManager.getInstance().setAcceptThirdPartyCookies(w, true);
+                  WebSettings s = w.getSettings();
+                  s.setJavaScriptEnabled(true);
+                  s.setDomStorageEnabled(true);
+                  s.setDatabaseEnabled(true);
+                  s.setJavaScriptCanOpenWindowsAutomatically(true);
+                  
+                  CookieManager cookieManager = CookieManager.getInstance();
+                  cookieManager.setAcceptCookie(true);
+                  cookieManager.setAcceptThirdPartyCookies(w, true);
+                  
                   w.setWebViewClient(new WebViewClient());
                   w.loadUrl("https://infinityglass.gt.tc/admin");
                   setContentView(w);
@@ -77,34 +112,12 @@ jobs:
           }
           EOF
 
-          # Gerekli gradle dosyalarını oluştur
-          cat <<EOF > build.gradle
-          allprojects { repositories { google(); mavenCentral() } }
-          EOF
-          
-          cat <<EOF > settings.gradle
-          include ':app'
-          EOF
-
-          cat <<EOF > app/build.gradle
-          apply plugin: 'com.android.application'
-          android {
-              namespace 'com.infinityglass.admin'
-              compileSdkVersion 33
-              defaultConfig {
-                  applicationId "com.infinityglass.admin"
-                  minSdkVersion 21
-                  targetSdkVersion 33
-              }
-          }
-          EOF
-
-          # Derleme
+          # 3. Gradle İndir ve Derle
           wget https://services.gradle.org/distributions/gradle-7.5-bin.zip
           unzip -q gradle-7.5-bin.zip
           ./gradle-7.5/bin/gradle assembleDebug
 
-      - name: Upload APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
