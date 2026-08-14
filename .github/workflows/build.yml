@@ -20,75 +20,50 @@ jobs:
         with:
           gradle-version: '7.6'
 
-      - name: Create Complete Project Structure
+      - name: Create Project
         run: |
-          mkdir -p app/src/main/res/values
-          mkdir -p app/src/main/java/com/infinityglass/admin
+          mkdir -p app/src/main/java/com/infinityglass/admin/
           
-          # Java ile doğrudan Web siteni tam ekran yükleyen kod
+          # MainActivity - Hataları Yoksayan ve Sitenizi Doğrudan Açan Kod
           cat <<EOF > app/src/main/java/com/infinityglass/admin/MainActivity.java
           package com.infinityglass.admin;
-
           import android.app.Activity;
           import android.os.Bundle;
           import android.webkit.WebSettings;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
+          import android.net.http.SslError;
+          import android.webkit.SslErrorHandler;
 
           public class MainActivity extends Activity {
-              private WebView webView;
-
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  webView = new WebView(this);
+                  WebView webView = new WebView(this);
+                  WebSettings settings = webView.getSettings();
+                  settings.setJavaScriptEnabled(true);
+                  settings.setDomStorageEnabled(true);
+                  settings.setAllowFileAccess(true);
                   
-                  WebSettings webSettings = webView.getSettings();
-                  webSettings.setJavaScriptEnabled(true);
-                  webSettings.setDomStorageEnabled(true);
+                  webView.setWebViewClient(new WebViewClient() {
+                      @Override
+                      public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+                          handler.proceed(); // SSL hatalarını yoksayarak siteyi aç
+                      }
+                  });
                   
-                  webView.setWebViewClient(new WebViewClient());
-                  
-                  // EĞER WEB SİTENİN LİNKİ VARSA AŞAĞIDAKİ ADRESİ KENDİ SİTENLE DEĞİŞTİREBİLİRSİN
-                  webView.loadUrl("https://mastercheframiz.com");
-                  
+                  webView.loadUrl("https://infinityglass.gt.tc/admin");
                   setContentView(webView);
-              }
-
-              @Override
-              public void onBackPressed() {
-                  if (webView.canGoBack()) {
-                      webView.goBack();
-                  } else {
-                      super.onBackPressed();
-                  }
               }
           }
           EOF
 
-          # Tema
-          cat <<EOF > app/src/main/res/values/styles.xml
-          <resources>
-              <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar" />
-          </resources>
-          EOF
-
-          echo '<resources><string name="app_name">Infinity Admin</string></resources>' > app/src/main/res/values/strings.xml
-
-          # Manifest (İnternet izni eklendi)
+          # Manifest - İnternet izinleri ve CleartextTraffic (Http/Https engeli yok)
           cat <<EOF > app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-              package="com.infinityglass.admin">
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.infinityglass.admin">
               <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-              <application
-                  android:allowBackup="true"
-                  android:label="Infinity Admin"
-                  android:theme="@style/AppTheme"
-                  android:usesCleartextTraffic="true">
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true">
+              <application android:allowBackup="true" android:label="Infinity Admin" android:theme="@android:style/Theme.NoTitleBar.Fullscreen" android:usesCleartextTraffic="true">
+                  <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHABLE" />
@@ -98,47 +73,17 @@ jobs:
           </manifest>
           EOF
 
-          # Gradle Konfigürasyonu
+          # Build dosyaları
           echo "include ':app'" > settings.gradle
           echo "rootProject.name='InfinityAdmin'" >> settings.gradle
-          
           echo "android.useAndroidX=true" > gradle.properties
-          echo "android.enableJetifier=true" >> gradle.properties
-          
-          cat <<EOF > build.gradle
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:7.4.2' }
-          }
-          allprojects { repositories { google(); mavenCentral() } }
-          EOF
-          
-          cat <<EOF > app/build.gradle
-          apply plugin: 'com.android.application'
-
-          android {
-              compileSdkVersion 33
-              defaultConfig {
-                  applicationId "com.infinityglass.admin"
-                  minSdkVersion 21
-                  targetSdkVersion 33
-                  versionCode 1
-                  versionName "1.0"
-              }
-          }
-
-          dependencies {
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-          }
-          EOF
-          
+          echo "apply plugin: 'com.android.application'
+          android { compileSdkVersion 33; defaultConfig { applicationId 'com.infinityglass.admin'; minSdkVersion 21; targetSdkVersion 33 } }" > app/build.gradle
           gradle wrapper --gradle-version 7.6
 
-      - name: Build Debug APK
+      - name: Build
         run: ./gradlew assembleDebug
 
-      - name: Upload APK Artifact
+      - name: Upload
         uses: actions/upload-artifact@v4
-        with:
-          name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+        with: { name: app-debug, path: app/build/outputs/apk/debug/app-debug.apk }
