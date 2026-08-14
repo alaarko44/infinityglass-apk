@@ -7,80 +7,50 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with: { distribution: 'temurin', java-version: '17' }
-
-      - name: Build and Package
+      
+      - name: Auto Init and Build
         run: |
+          # 1. Gradle'ı otomatik başlat, boş bir proje kur
+          gradle init --type basic --dsl groovy --project-name infinityadmin --package com.infinityglass.admin --incubating
+          
+          # 2. Android yapısını manuel olarak ekle
           mkdir -p app/src/main/java/com/infinityglass/admin
           
-          # Gradle Wrapper'ı daha stabil bir sürüme çekiyoruz (8.2)
-          gradle wrapper --gradle-version 8.2
-          
-          # Root build.gradle
           cat <<EOF > build.gradle
-          plugins {
-              id 'com.android.application' version '8.1.0' apply false
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:7.4.2' }
           }
-          EOF
-
-          # Settings.gradle
-          cat <<EOF > settings.gradle
-          rootProject.name='InfinityAdmin'
-          include ':app'
-          EOF
-
-          # App build.gradle (Eski methodu kullanıyoruz, daha uyumlu)
-          mkdir -p app
-          cat <<EOF > app/build.gradle
           apply plugin: 'com.android.application'
           android {
-              namespace 'com.infinityglass.admin'
-              compileSdk 33
-              defaultConfig {
-                  applicationId "com.infinityglass.admin"
-                  minSdkVersion 21
-                  targetSdkVersion 33
-              }
+              compileSdkVersion 33
+              defaultConfig { applicationId "com.infinityglass.admin"; minSdkVersion 21; targetSdkVersion 33 }
           }
           EOF
-
-          # Manifest
+          
+          # 3. Manifest ve Main kodunu yaz
           cat <<EOF > app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.infinityglass.admin">
-              <uses-permission android:name="android.permission.INTERNET"/>
-              <application android:label="Infinity Admin" android:usesCleartextTraffic="true">
-                  <activity android:name=".MainActivity" android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
+          <manifest package="com.infinityglass.admin"><application android:label="Infinity Admin" android:usesCleartextTraffic="true"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>
           EOF
-
-          # MainActivity
+          
           cat <<EOF > app/src/main/java/com/infinityglass/admin/MainActivity.java
           package com.infinityglass.admin;
           import android.app.Activity;
           import android.os.Bundle;
           import android.webkit.WebView;
-          import android.webkit.WebViewClient;
           public class MainActivity extends Activity {
               protected void onCreate(Bundle b) {
                   super.onCreate(b);
                   WebView w = new WebView(this);
                   w.getSettings().setJavaScriptEnabled(true);
-                  w.setWebViewClient(new WebViewClient());
                   w.loadUrl("https://infinityglass.gt.tc/admin");
                   setContentView(w);
               }
           }
           EOF
           
-          chmod +x gradlew
-          ./gradlew assembleDebug
+          # 4. Derle
+          gradle assembleDebug
 
       - uses: actions/upload-artifact@v4
-        with: { name: app-debug, path: app/build/outputs/apk/debug/app-debug.apk }
+        with: { name: app-debug, path: build/outputs/apk/debug/app-debug.apk }
