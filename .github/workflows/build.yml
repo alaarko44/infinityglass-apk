@@ -18,7 +18,9 @@ jobs:
       - name: Create Project Structure
         run: |
           mkdir -p app/src/main/java/com/infinityglass/admin/
-          mkdir -p app/src/main/res/values/
+          
+          # Gradle Wrapper Oluşturma
+          gradle wrapper --gradle-version 7.6
 
           # 1. build.gradle (Proje Seviyesi)
           cat <<EOF > build.gradle
@@ -32,7 +34,7 @@ jobs:
           # 2. settings.gradle
           echo "include ':app'" > settings.gradle
 
-          # 3. app/build.gradle (Uygulama Seviyesi)
+          # 3. app/build.gradle
           cat <<EOF > app/build.gradle
           apply plugin: 'com.android.application'
           android {
@@ -85,7 +87,7 @@ jobs:
           EOF
 
       - name: Build APK
-        run: ./gradlew assembleDebug
+        run: chmod +x gradlew && ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
