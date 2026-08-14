@@ -15,7 +15,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Create Project and Build
+      - name: Create Project Files
         run: |
           mkdir -p app/src/main/res/values
           echo '<resources><string name="app_name">Infinity Admin</string></resources>' > app/src/main/res/values/strings.xml
@@ -39,9 +39,10 @@ jobs:
               }
           }
           EOF
-          # Gradle Wrapper'ı doğrudan oluşturup çalıştırıyoruz
-          gradle wrapper --gradle-version 7.6
-          ./gradlew assembleDebug
+
+      - name: Build APK (Direct Gradle)
+        # gradlew dosyasını kullanmadan direkt 'gradle' komutunu çalıştırıyoruz
+        run: gradle assembleDebug
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
