@@ -15,7 +15,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Create Minimal Project
+      - name: Create Project and Build
         run: |
           mkdir -p app/src/main/res/values
           echo '<resources><string name="app_name">Infinity Admin</string></resources>' > app/src/main/res/values/strings.xml
@@ -39,11 +39,9 @@ jobs:
               }
           }
           EOF
-
-      - name: Build Debug APK with Gradle
-        uses: gradle/gradle-build-action@v3
-        with:
-          arguments: assembleDebug
+          # Gradle Wrapper'ı doğrudan oluşturup çalıştırıyoruz
+          gradle wrapper --gradle-version 7.6
+          ./gradlew assembleDebug
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
