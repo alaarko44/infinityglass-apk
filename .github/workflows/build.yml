@@ -38,6 +38,8 @@ jobs:
           echo "buildscript { repositories { google(); mavenCentral() } dependencies { classpath 'com.android.tools.build:gradle:7.4.2' } }" > build.gradle
           echo "allprojects { repositories { google(); mavenCentral() } }" >> build.gradle
           echo "sdk.dir=$ANDROID_HOME" > local.properties
+          
+          gradle wrapper
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug
