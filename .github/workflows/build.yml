@@ -7,50 +7,92 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Auto Init and Build
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build APK Automatically
         run: |
-          # 1. Gradle'ı otomatik başlat, boş bir proje kur
-          gradle init --type basic --dsl groovy --project-name infinityadmin --package com.infinityglass.admin --incubating
-          
-          # 2. Android yapısını manuel olarak ekle
+          # 1. Proje yapısını sıfırdan kusursuz kuruyoruz
           mkdir -p app/src/main/java/com/infinityglass/admin
           
+          cat <<EOF > settings.gradle
+          rootProject.name = 'InfinityAdmin'
+          include ':app'
+          EOF
+
           cat <<EOF > build.gradle
           buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:7.4.2' }
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:7.4.2'
+              }
           }
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          EOF
+
+          cat <<EOF > app/build.gradle
           apply plugin: 'com.android.application'
           android {
+              namespace 'com.infinityglass.admin'
               compileSdkVersion 33
-              defaultConfig { applicationId "com.infinityglass.admin"; minSdkVersion 21; targetSdkVersion 33 }
+              defaultConfig {
+                  applicationId "com.infinityglass.admin"
+                  minSdkVersion 21
+                  targetSdkVersion 33
+              }
           }
           EOF
-          
-          # 3. Manifest ve Main kodunu yaz
+
           cat <<EOF > app/src/main/AndroidManifest.xml
-          <manifest package="com.infinityglass.admin"><application android:label="Infinity Admin" android:usesCleartextTraffic="true"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.infinityglass.admin">
+              <uses-permission android:name="android.permission.INTERNET"/>
+              <application android:label="Infinity Admin" android:usesCleartextTraffic="true">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
           EOF
-          
+
           cat <<EOF > app/src/main/java/com/infinityglass/admin/MainActivity.java
           package com.infinityglass.admin;
           import android.app.Activity;
           import android.os.Bundle;
           import android.webkit.WebView;
+          import android.webkit.WebViewClient;
           public class MainActivity extends Activity {
+              @Override
               protected void onCreate(Bundle b) {
                   super.onCreate(b);
                   WebView w = new WebView(this);
                   w.getSettings().setJavaScriptEnabled(true);
+                  w.setWebViewClient(new WebViewClient());
                   w.loadUrl("https://infinityglass.gt.tc/admin");
                   setContentView(w);
               }
           }
           EOF
-          
-          # 4. Derle
-          gradle assembleDebug
 
-      - uses: actions/upload-artifact@v4
-        with: { name: app-debug, path: build/outputs/apk/debug/app-debug.apk }
+          # 2. Gradle Wrapper'ı kurup derliyoruz
+          gradle wrapper --gradle-version 7.5
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
