@@ -14,7 +14,6 @@ jobs:
 
       - name: Build APK Automatically
         run: |
-          # 1. Proje dosyalarını sıfırdan oluşturuyoruz
           mkdir -p app/src/main/java/com/infinityglass/admin
           
           cat <<EOF > settings.gradle
@@ -73,12 +72,23 @@ jobs:
           import android.os.Bundle;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
+          import android.webkit.WebSettings;
+          import android.webkit.CookieManager;
           public class MainActivity extends Activity {
               @Override
               protected void onCreate(Bundle b) {
                   super.onCreate(b);
                   WebView w = new WebView(this);
-                  w.getSettings().setJavaScriptEnabled(true);
+                  WebSettings s = w.getSettings();
+                  s.setJavaScriptEnabled(true);
+                  s.setDomStorageEnabled(true);
+                  s.setDatabaseEnabled(true);
+                  s.setJavaScriptCanOpenWindowsAutomatically(true);
+                  
+                  CookieManager cookieManager = CookieManager.getInstance();
+                  cookieManager.setAcceptCookie(true);
+                  cookieManager.setAcceptThirdPartyCookies(w, true);
+                  
                   w.setWebViewClient(new WebViewClient());
                   w.loadUrl("https://infinityglass.gt.tc/admin");
                   setContentView(w);
@@ -86,7 +96,6 @@ jobs:
           }
           EOF
 
-          # 2. GitHub'ın kendi Gradle'ını bypass edip 7.5 sürümünü manuel kuruyoruz
           wget https://services.gradle.org/distributions/gradle-7.5-bin.zip
           unzip -q gradle-7.5-bin.zip
           ./gradle-7.5/bin/gradle assembleDebug
