@@ -15,15 +15,54 @@ jobs:
         run: |
           mkdir -p app/src/main/java/com/infinityglass/admin
           echo "include ':app'" > settings.gradle
-          echo "plugins { id 'com.android.application' version '8.0.0' apply false }" > build.gradle
+          
+          # Plugin ve Google Maven depolarını açıkça ekliyoruz
+          cat <<EOF > build.gradle
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          plugins {
+              id 'com.android.application' version '8.0.0' apply false
+          }
+          EOF
+
+          cat <<EOF > settings.gradle
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name='InfinityAdmin'
+          include ':app'
+          EOF
           
           mkdir -p app
           cat <<EOF > app/build.gradle
-          plugins { id 'com.android.application' }
+          plugins {
+              id 'com.android.application'
+          }
           android {
               namespace 'com.infinityglass.admin'
               compileSdk 33
-              defaultConfig { applicationId "com.infinityglass.admin"; minSdkVersion 21; targetSdkVersion 33 }
+              defaultConfig {
+                  applicationId "com.infinityglass.admin"
+                  minSdkVersion 21
+                  targetSdkVersion 33
+                  versionCode 1
+              }
           }
           EOF
           
@@ -59,7 +98,6 @@ jobs:
           }
           EOF
           
-          # Gradle wrapper'ı kendi kendine oluşturup derle
           gradle wrapper
           ./gradlew assembleDebug
 
