@@ -12,12 +12,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build APK with Local Logo
+      - name: Build APK
         run: |
           mkdir -p app/src/main/java/com/infinityglass/admin
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/drawable
-
           if [ -f logo.png ]; then cp logo.png app/src/main/res/drawable/logo.png; fi
 
           cat <<EOF > settings.gradle
@@ -45,7 +44,6 @@ jobs:
               }
           }
           dependencies {
-              implementation 'com.google.android.material:material:1.9.0'
               implementation 'androidx.appcompat:appcompat:1.6.1'
           }
           EOF
@@ -58,7 +56,7 @@ jobs:
                   android:usesCleartextTraffic="true"
                   android:icon="@drawable/logo"
                   android:roundIcon="@drawable/logo"
-                  android:theme="@style/Theme.NoActionBar">
+                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -71,7 +69,7 @@ jobs:
 
           cat <<EOF > app/src/main/res/values/styles.xml
           <resources>
-              <style name="Theme.NoActionBar" parent="Theme.MaterialComponents.Light.NoActionBar.Bridge">
+              <style name="Theme.AppCompat.Light.NoActionBar" parent="Theme.AppCompat.Light.NoActionBar">
                   <item name="android:windowNoTitle">true</item>
                   <item name="android:windowFullscreen">false</item>
               </style>
@@ -96,11 +94,9 @@ jobs:
                   s.setJavaScriptEnabled(true);
                   s.setDomStorageEnabled(true);
                   s.setDatabaseEnabled(true);
-                  s.setJavaScriptCanOpenWindowsAutomatically(true);
                   
-                  CookieManager cookieManager = CookieManager.getInstance();
-                  cookieManager.setAcceptCookie(true);
-                  cookieManager.setAcceptThirdPartyCookies(w, true);
+                  CookieManager.getInstance().setAcceptCookie(true);
+                  CookieManager.getInstance().setAcceptThirdPartyCookies(w, true);
                   
                   w.setWebViewClient(new WebViewClient());
                   w.loadUrl("https://infinityglass.gt.tc/admin");
