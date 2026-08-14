@@ -14,22 +14,8 @@ jobs:
       - name: Build
         run: |
           mkdir -p app/src/main/java/com/infinityglass/admin
-          echo "include ':app'" > settings.gradle
           
-          # Plugin ve Google Maven depolarını açıkça ekliyoruz
-          cat <<EOF > build.gradle
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          plugins {
-              id 'com.android.application' version '8.0.0' apply false
-          }
-          EOF
-
+          # 1. settings.gradle (pluginManagement ve Repositories burada olacak)
           cat <<EOF > settings.gradle
           pluginManagement {
               repositories {
@@ -48,7 +34,15 @@ jobs:
           rootProject.name='InfinityAdmin'
           include ':app'
           EOF
-          
+
+          # 2. build.gradle (Sadece plugin tanımları, management blokları yok)
+          cat <<EOF > build.gradle
+          plugins {
+              id 'com.android.application' version '8.0.0' apply false
+          }
+          EOF
+
+          # 3. app/build.gradle
           mkdir -p app
           cat <<EOF > app/build.gradle
           plugins {
@@ -66,6 +60,7 @@ jobs:
           }
           EOF
           
+          # 4. Manifest
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.infinityglass.admin">
               <uses-permission android:name="android.permission.INTERNET"/>
@@ -80,6 +75,7 @@ jobs:
           </manifest>
           EOF
           
+          # 5. MainActivity
           cat <<EOF > app/src/main/java/com/infinityglass/admin/MainActivity.java
           package com.infinityglass.admin;
           import android.app.Activity;
