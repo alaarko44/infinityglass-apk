@@ -20,12 +20,39 @@ jobs:
         with:
           gradle-version: '7.6'
 
-      - name: Create Project Files
+      - name: Create Complete Project Structure
         run: |
+          # Klasörleri eksiksiz oluşturuyoruz
           mkdir -p app/src/main/res/values
+          
+          # AndroidManifest.xml dosyasını tam yerine yazıyoruz
+          cat <<EOF > app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+              package="com.infinityglass.admin">
+              <application
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:label="Infinity Admin"
+                  android:roundIcon="@mipmap/ic_launcher_round"
+                  android:supportsRtl="true"
+                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHABLE" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          # Strings ve gradle ayarları
           echo '<resources><string name="app_name">Infinity Admin</string></resources>' > app/src/main/res/values/strings.xml
           echo "include ':app'" > settings.gradle
           echo "rootProject.name='InfinityAdmin'" >> settings.gradle
+          
           cat <<EOF > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -33,6 +60,7 @@ jobs:
           }
           allprojects { repositories { google(); mavenCentral() } }
           EOF
+          
           cat <<EOF > app/build.gradle
           apply plugin: 'com.android.application'
           android {
@@ -41,9 +69,12 @@ jobs:
                   applicationId 'com.infinityglass.admin'
                   minSdk 21
                   targetSdk 33
+                  versionCode 1
+                  versionName '1.0'
               }
           }
           EOF
+          
           gradle wrapper --gradle-version 7.6
 
       - name: Build Debug APK
