@@ -14,15 +14,12 @@ jobs:
 
       - name: Build APK with Local Logo
         run: |
-          # 1. Klasörleri oluşturuyoruz
           mkdir -p app/src/main/java/com/infinityglass/admin
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/drawable
 
-          # logo.png dosyasını drawable içine kopyala
           if [ -f logo.png ]; then cp logo.png app/src/main/res/drawable/logo.png; fi
 
-          # 2. Ayar ve Kod Dosyalarını Oluşturuyoruz
           cat <<EOF > settings.gradle
           rootProject.name = 'InfinityAdmin'
           include ':app'
@@ -30,20 +27,10 @@ jobs:
 
           cat <<EOF > build.gradle
           buildscript {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:7.4.2'
-              }
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:7.4.2' }
           }
-          allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
+          allprojects { repositories { google(); mavenCentral() } }
           EOF
 
           cat <<EOF > app/build.gradle
@@ -56,6 +43,10 @@ jobs:
                   minSdkVersion 21
                   targetSdkVersion 33
               }
+          }
+          dependencies {
+              implementation 'com.google.android.material:material:1.9.0'
+              implementation 'androidx.appcompat:appcompat:1.6.1'
           }
           EOF
 
@@ -80,7 +71,7 @@ jobs:
 
           cat <<EOF > app/src/main/res/values/styles.xml
           <resources>
-              <style name="Theme.NoActionBar" parent="Theme.MaterialComponents.Light.NoActionBar">
+              <style name="Theme.NoActionBar" parent="Theme.MaterialComponents.Light.NoActionBar.Bridge">
                   <item name="android:windowNoTitle">true</item>
                   <item name="android:windowFullscreen">false</item>
               </style>
@@ -89,20 +80,17 @@ jobs:
 
           cat <<EOF > app/src/main/java/com/infinityglass/admin/MainActivity.java
           package com.infinityglass.admin;
-          import android.app.Activity;
+          import androidx.appcompat.app.AppCompatActivity;
           import android.os.Bundle;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
           import android.webkit.WebSettings;
           import android.webkit.CookieManager;
-          import android.view.Window;
 
-          public class MainActivity extends Activity {
+          public class MainActivity extends AppCompatActivity {
               @Override
               protected void onCreate(Bundle b) {
                   super.onCreate(b);
-                  requestWindowFeature(Window.FEATURE_NO_TITLE);
-                  
                   WebView w = new WebView(this);
                   WebSettings s = w.getSettings();
                   s.setJavaScriptEnabled(true);
@@ -121,7 +109,6 @@ jobs:
           }
           EOF
 
-          # 3. Gradle İndir ve Derle
           wget https://services.gradle.org/distributions/gradle-7.5-bin.zip
           unzip -q gradle-7.5-bin.zip
           ./gradle-7.5/bin/gradle assembleDebug
