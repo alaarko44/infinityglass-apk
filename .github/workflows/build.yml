@@ -23,21 +23,75 @@ jobs:
       - name: Create Complete Project Structure
         run: |
           mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/assets
           
-          # Tema dosyası
+          # HTML/JS uygulamanı doğrudan buraya gömüyoruz (Reklam ve filigran yok)
+          cat <<EOF > app/src/main/assets/index.html
+          <!DOCTYPE html>
+          <html lang="tr">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Infinity Glass - Yönetim Paneli</title>
+              <style>
+                  body { font-family: sans-serif; margin: 0; background: #f4f6f9; display: flex; justify-content: center; align-items: center; height: 100vh; }
+                  .login-card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 90%; max-width: 400px; text-align: center; }
+                  h2 { color: #1e293b; margin-bottom: 8px; font-size: 20px; }
+                  p { color: #64748b; font-size: 14px; margin-bottom: 24px; }
+                  input { width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+                  button { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+                  button:hover { background: #1d4ed8; }
+              </style>
+          </head>
+          <body>
+              <div class="login-card">
+                  <h2>Yönetici Girişi / تسجيل دخول المشرف</h2>
+                  <p>Infinity Glass Güvenli Yönetim Paneli</p>
+                  <input type="text" placeholder="Kullanıcı Adı / اسم المستخدم">
+                  <input type="password" placeholder="Şifre / كلمة المرور">
+                  <button>Giriş Yap / تسجيل الدخول</button>
+              </div>
+          </body>
+          </html>
+          EOF
+
+          # WebView yükleyecek MainActivity sınıfı
+          mkdir -p app/src/main/java/com/infinityglass/admin
+          cat <<EOF > app/src/main/java/com/infinityglass/admin/MainActivity.kt
+          package com.infinityglass.admin
+
+          import android.annotation.SuppressLint
+          import android.app.Activity
+          import android.os.Bundle
+          import android.webkit.WebView
+          import android.webkit.WebViewClient
+
+          class MainActivity : Activity() {
+              @SuppressLint("SetJavaScriptEnabled")
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  val webView = WebView(this)
+                  webView.settings.javaScriptEnabled = true
+                  webView.webViewClient = WebViewClient()
+                  webView.loadUrl("file:///android_asset/index.html")
+                  setContentView(webView)
+              }
+          }
+          EOF
+
+          # Tema ve Manifest
           cat <<EOF > app/src/main/res/values/styles.xml
           <resources>
               <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar" />
           </resources>
           EOF
 
-          # Strings dosyası
           echo '<resources><string name="app_name">Infinity Admin</string></resources>' > app/src/main/res/values/strings.xml
 
-          # AndroidManifest.xml
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android"
               package="com.infinityglass.admin">
+              <uses-permission android:name="android.permission.INTERNET" />
               <application
                   android:allowBackup="true"
                   android:label="Infinity Admin"
@@ -54,11 +108,9 @@ jobs:
           </manifest>
           EOF
 
-          # Gradle ve AndroidX ayarları
           echo "include ':app'" > settings.gradle
           echo "rootProject.name='InfinityAdmin'" >> settings.gradle
           
-          # ANDROIDX İÇİN GEREKLİ PROPERTİLER
           echo "android.useAndroidX=true" > gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
           
@@ -72,6 +124,7 @@ jobs:
           
           cat <<EOF > app/build.gradle
           apply plugin: 'com.android.application'
+          apply plugin: 'kotlin-android'
           android {
               compileSdk 33
               defaultConfig {
@@ -84,6 +137,7 @@ jobs:
           }
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'androidx.core:core-ktx:1.9.0'
           }
           EOF
           
