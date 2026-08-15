@@ -12,7 +12,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build APK (Print Enabled)
+      - name: Build APK (Force Print)
         run: |
           mkdir -p app/src/main/java/com/infinityglass/admin
           mkdir -p app/src/main/res/values
@@ -70,28 +70,39 @@ jobs:
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
           import android.webkit.WebSettings;
-          import android.webkit.WebChromeClient;
-          import android.webkit.CookieManager;
+          import android.print.PrintAttributes;
+          import android.print.PrintManager;
+          import android.webkit.WebResourceRequest;
 
           public class MainActivity extends Activity {
+              private WebView w;
               @Override
               protected void onCreate(Bundle b) {
                   super.onCreate(b);
-                  WebView w = new WebView(this);
+                  w = new WebView(this);
                   WebSettings s = w.getSettings();
                   s.setJavaScriptEnabled(true);
                   s.setDomStorageEnabled(true);
-                  s.setDatabaseEnabled(true);
-                  s.setJavaScriptCanOpenWindowsAutomatically(true);
-                  s.setSupportMultipleWindows(true);
                   
-                  CookieManager.getInstance().setAcceptCookie(true);
-                  CookieManager.getInstance().setAcceptThirdPartyCookies(w, true);
+                  w.setWebViewClient(new WebViewClient() {
+                      @Override
+                      public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
+                          String url = req.getUrl().toString();
+                          if (url.startsWith("javascript:window.print()")) {
+                              createPrintJob(view);
+                              return true;
+                          }
+                          return false;
+                      }
+                  });
                   
-                  w.setWebViewClient(new WebViewClient());
-                  w.setWebChromeClient(new WebChromeClient());
                   w.loadUrl("https://infinityglass.gt.tc/admin");
                   setContentView(w);
+              }
+
+              private void createPrintJob(WebView webView) {
+                  PrintManager printManager = (PrintManager) this.getSystemService(PRINT_SERVICE);
+                  printManager.print("Fatura", webView.createPrintDocumentAdapter("Fatura"), new PrintAttributes.Builder().build());
               }
           }
           EOF
