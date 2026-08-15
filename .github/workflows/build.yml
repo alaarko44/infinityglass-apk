@@ -12,7 +12,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build APK (Logo Fix)
+      - name: Build APK (Force Light Mode)
         run: |
           mkdir -p app/src/main/java/com/infinityglass/admin
           mkdir -p app/src/main/res/values
@@ -73,7 +73,9 @@ jobs:
           import android.print.PrintAttributes;
           import android.print.PrintManager;
           import android.webkit.JavascriptInterface;
-          import android.graphics.Color;
+          import android.webkit.WebSettings;
+          import androidx.webkit.WebSettingsCompat;
+          import androidx.webkit.WebViewFeature;
 
           public class MainActivity extends Activity {
               private WebView w;
@@ -81,21 +83,21 @@ jobs:
               protected void onCreate(Bundle b) {
                   super.onCreate(b);
                   w = new WebView(this);
-                  w.setBackgroundColor(Color.WHITE); // Arka planı beyaz yap
                   WebSettings s = w.getSettings();
                   s.setJavaScriptEnabled(true);
                   s.setDomStorageEnabled(true);
+                  
+                  // Koyu modu devre dışı bırak, her zaman açık mod kullan
+                  if (WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {
+                      WebSettingsCompat.setForceDark(w.getSettings(), WebSettingsCompat.FORCE_DARK_OFF);
+                  }
                   
                   w.addJavascriptInterface(new Object() {
                       @JavascriptInterface
                       public void printPage() {
                           runOnUiThread(() -> {
-                              // Yazdırmadan önce sayfaya beyaz arka planı zorla ekle
-                              w.evaluateJavascript("document.body.style.backgroundColor = 'white';", null);
-                              w.postDelayed(() -> {
-                                  PrintManager pm = (PrintManager) getSystemService(PRINT_SERVICE);
-                                  pm.print("Fatura", w.createPrintDocumentAdapter("Fatura"), new PrintAttributes.Builder().build());
-                              }, 1000); 
+                              PrintManager pm = (PrintManager) getSystemService(PRINT_SERVICE);
+                              pm.print("Fatura", w.createPrintDocumentAdapter("Fatura"), new PrintAttributes.Builder().build());
                           });
                       }
                   }, "AndroidBridge");
