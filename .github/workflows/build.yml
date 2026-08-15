@@ -63,8 +63,9 @@ jobs:
           </manifest>
           EOF
 
-          cat <<EOF > app/src/main/java/com/infinityglass.admin/MainActivity.java
+          cat <<EOF > app/src/main/java/com/infinityglass/admin/MainActivity.java
           package com.infinityglass.admin;
+          import android.app.Dialog;
           import android.app.Activity;
           import android.os.Bundle;
           import android.webkit.WebView;
@@ -93,7 +94,6 @@ jobs:
                   
                   w.setWebViewClient(new WebViewClient());
                   
-                  // Yazdırma pencerelerinin ve yeni sekme açma isteklerinin çalışmasını sağlar
                   w.setWebChromeClient(new WebChromeClient() {
                       @Override
                       public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, Message resultMsg) {
@@ -107,8 +107,7 @@ jobs:
                               }
                           });
                           
-                          Activity context = MainActivity.this;
-                          Dialog dialog = new Dialog(context);
+                          Dialog dialog = new Dialog(MainActivity.this);
                           dialog.setContentView(newWebView);
                           dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
                           dialog.show();
