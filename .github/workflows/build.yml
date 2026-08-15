@@ -12,7 +12,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build APK (PopUp Fix)
+      - name: Build APK (JS Print Bridge)
         run: |
           mkdir -p app/src/main/java/com/infinityglass/admin
           mkdir -p app/src/main/res/values
@@ -65,16 +65,14 @@ jobs:
 
           cat <<EOF > app/src/main/java/com/infinityglass/admin/MainActivity.java
           package com.infinityglass.admin;
-          import android.app.Dialog;
           import android.app.Activity;
           import android.os.Bundle;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
           import android.webkit.WebSettings;
-          import android.webkit.WebChromeClient;
-          import android.webkit.CookieManager;
-          import android.os.Message;
-          import android.view.ViewGroup;
+          import android.print.PrintAttributes;
+          import android.print.PrintManager;
+          import android.webkit.JavascriptInterface;
 
           public class MainActivity extends Activity {
               private WebView w;
@@ -85,39 +83,26 @@ jobs:
                   WebSettings s = w.getSettings();
                   s.setJavaScriptEnabled(true);
                   s.setDomStorageEnabled(true);
-                  s.setDatabaseEnabled(true);
-                  s.setJavaScriptCanOpenWindowsAutomatically(true);
-                  s.setSupportMultipleWindows(true);
                   
-                  CookieManager.getInstance().setAcceptCookie(true);
-                  CookieManager.getInstance().setAcceptThirdPartyCookies(w, true);
-                  
-                  w.setWebViewClient(new WebViewClient());
-                  
-                  w.setWebChromeClient(new WebChromeClient() {
-                      @Override
-                      public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, Message resultMsg) {
-                          WebView newWebView = new WebView(MainActivity.this);
-                          newWebView.getSettings().setJavaScriptEnabled(true);
-                          newWebView.setWebViewClient(new WebViewClient() {
-                              @Override
-                              public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                                  view.loadUrl(url);
-                                  return true;
-                              }
+                  // Yazdırma komutunu yakalamak için köprü kuruyoruz
+                  w.addJavascriptInterface(new Object() {
+                      @JavascriptInterface
+                      public void printPage() {
+                          runOnUiThread(() -> {
+                              PrintManager pm = (PrintManager) getSystemService(PRINT_SERVICE);
+                              pm.print("Fatura", w.createPrintDocumentAdapter("Fatura"), new PrintAttributes.Builder().build());
                           });
-                          
-                          Dialog dialog = new Dialog(MainActivity.this);
-                          dialog.setContentView(newWebView);
-                          dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-                          dialog.show();
-                          
-                          ((WebView.WebViewTransport) resultMsg.obj).setWebView(newWebView);
-                          resultMsg.sendToTarget();
-                          return true;
+                      }
+                  }, "AndroidBridge");
+                  
+                  w.setWebViewClient(new WebViewClient() {
+                      @Override
+                      public void onPageFinished(WebView view, String url) {
+                          // Sayfa yüklendiğinde window.print'i bizim köprümüze yönlendir
+                          view.evaluateJavascript("window.print = function() { AndroidBridge.printPage(); };", null);
                       }
                   });
-
+                  
                   w.loadUrl("https://infinityglass.gt.tc/admin");
                   setContentView(w);
               }
