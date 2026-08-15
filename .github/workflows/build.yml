@@ -12,7 +12,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build APK (Force Print)
+      - name: Build APK (PopUp Fix)
         run: |
           mkdir -p app/src/main/java/com/infinityglass/admin
           mkdir -p app/src/main/res/values
@@ -63,16 +63,17 @@ jobs:
           </manifest>
           EOF
 
-          cat <<EOF > app/src/main/java/com/infinityglass/admin/MainActivity.java
+          cat <<EOF > app/src/main/java/com/infinityglass.admin/MainActivity.java
           package com.infinityglass.admin;
           import android.app.Activity;
           import android.os.Bundle;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
           import android.webkit.WebSettings;
-          import android.print.PrintAttributes;
-          import android.print.PrintManager;
-          import android.webkit.WebResourceRequest;
+          import android.webkit.WebChromeClient;
+          import android.webkit.CookieManager;
+          import android.os.Message;
+          import android.view.ViewGroup;
 
           public class MainActivity extends Activity {
               private WebView w;
@@ -83,26 +84,43 @@ jobs:
                   WebSettings s = w.getSettings();
                   s.setJavaScriptEnabled(true);
                   s.setDomStorageEnabled(true);
+                  s.setDatabaseEnabled(true);
+                  s.setJavaScriptCanOpenWindowsAutomatically(true);
+                  s.setSupportMultipleWindows(true);
                   
-                  w.setWebViewClient(new WebViewClient() {
+                  CookieManager.getInstance().setAcceptCookie(true);
+                  CookieManager.getInstance().setAcceptThirdPartyCookies(w, true);
+                  
+                  w.setWebViewClient(new WebViewClient());
+                  
+                  // Yazdırma pencerelerinin ve yeni sekme açma isteklerinin çalışmasını sağlar
+                  w.setWebChromeClient(new WebChromeClient() {
                       @Override
-                      public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
-                          String url = req.getUrl().toString();
-                          if (url.startsWith("javascript:window.print()")) {
-                              createPrintJob(view);
-                              return true;
-                          }
-                          return false;
+                      public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, Message resultMsg) {
+                          WebView newWebView = new WebView(MainActivity.this);
+                          newWebView.getSettings().setJavaScriptEnabled(true);
+                          newWebView.setWebViewClient(new WebViewClient() {
+                              @Override
+                              public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                                  view.loadUrl(url);
+                                  return true;
+                              }
+                          });
+                          
+                          Activity context = MainActivity.this;
+                          Dialog dialog = new Dialog(context);
+                          dialog.setContentView(newWebView);
+                          dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+                          dialog.show();
+                          
+                          ((WebView.WebViewTransport) resultMsg.obj).setWebView(newWebView);
+                          resultMsg.sendToTarget();
+                          return true;
                       }
                   });
-                  
+
                   w.loadUrl("https://infinityglass.gt.tc/admin");
                   setContentView(w);
-              }
-
-              private void createPrintJob(WebView webView) {
-                  PrintManager printManager = (PrintManager) this.getSystemService(PRINT_SERVICE);
-                  printManager.print("Fatura", webView.createPrintDocumentAdapter("Fatura"), new PrintAttributes.Builder().build());
               }
           }
           EOF
